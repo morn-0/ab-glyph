@@ -4,6 +4,14 @@ use crate::{point, Glyph, Point, PxScaleFactor};
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
+pub trait OutlineBuilder {
+    fn line_to(&mut self, p0: Point, p1: Point);
+
+    fn quad_to(&mut self, p0: Point, p1: Point, p2: Point);
+
+    fn cubic_to(&mut self, p0: Point, p1: Point, p2: Point, p3: Point);
+}
+
 /// A "raw" collection of outline curves for a glyph, unscaled & unpositioned.
 #[derive(Clone, Debug)]
 pub struct Outline {
@@ -134,6 +142,40 @@ impl OutlinedGlyph {
                 }
             })
             .for_each_pixel_2d(o);
+    }
+
+    pub fn draw_builder<T>(&self, mut builder: T) -> T
+    where
+        T: OutlineBuilder,
+    {
+        let h_factor = self.scale_factor.horizontal;
+        let v_factor = -self.scale_factor.vertical;
+        let offset = self.glyph.position;
+
+        let scale_up = |&Point { x, y }| point(x * h_factor, y * v_factor);
+
+        self.outline.curves.iter().for_each(|curve| match curve {
+            OutlineCurve::Line(p0, p1) => {
+                builder.line_to(scale_up(p0) + offset, scale_up(p1) + offset);
+            }
+            OutlineCurve::Quad(p0, p1, p2) => {
+                builder.quad_to(
+                    scale_up(p0) + offset,
+                    scale_up(p1) + offset,
+                    scale_up(p2) + offset,
+                );
+            }
+            OutlineCurve::Cubic(p0, p1, p2, p3) => {
+                builder.cubic_to(
+                    scale_up(p0) + offset,
+                    scale_up(p1) + offset,
+                    scale_up(p2) + offset,
+                    scale_up(p3) + offset,
+                );
+            }
+        });
+
+        builder
     }
 }
 
