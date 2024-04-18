@@ -1,4 +1,10 @@
-# v0.2.23
+# 0.2.25
+* Add `Font::glyph_svg_image` for accessing glyph svg data.
+
+# 0.2.24
+* Add `Font::font_data` for accessing underlying raw font data.
+
+# 0.2.23
 * Update _ttf-parser_ to `0.20`.
 
 # 0.2.22

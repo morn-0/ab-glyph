@@ -1,5 +1,6 @@
 use crate::{
-    point, v2, Glyph, GlyphId, Outline, OutlinedGlyph, PxScale, PxScaleFont, Rect, ScaleFont,
+    point, v2, Glyph, GlyphId, GlyphSvg, Outline, OutlinedGlyph, PxScale, PxScaleFont, Rect,
+    ScaleFont,
 };
 
 /// Functionality required from font data.
@@ -177,6 +178,16 @@ pub trait Font {
     /// To get the largest image use `u16::MAX`.
     fn glyph_raster_image2(&self, id: GlyphId, pixel_size: u16) -> Option<v2::GlyphImage>;
 
+    /// Returns raw SVG data of a range of glyphs which includes this one.
+    ///
+    /// Some fonts define their images as SVG rather than a raster format. SVG data here is raw and
+    /// should be rendered and/or decompressed by the caller, and scaled appropriately. The SVG file
+    /// might include a series of glyphs as nodes.
+    fn glyph_svg_image(&self, id: GlyphId) -> Option<GlyphSvg> {
+        _ = id;
+        None // Avoid breaking external Font impls.
+    }
+
     /// Returns the layout bounds of this glyph. These are different to the outline `px_bounds()`.
     ///
     /// Horizontally: Glyph position +/- h_advance/h_side_bearing.
@@ -242,6 +253,23 @@ pub trait Font {
             font: self,
             scale: scale.into(),
         }
+    }
+
+    /// Extracts a slice containing the data passed into e.g. [`FontArc::try_from_slice`].
+    ///
+    /// # Example
+    /// ```
+    /// # use ab_glyph::*;
+    /// # fn main() -> Result<(), InvalidFont> {
+    /// # let owned_font_data = include_bytes!("../../dev/fonts/Exo2-Light.otf");
+    /// let font = FontArc::try_from_slice(owned_font_data)?;
+    /// assert_eq!(font.font_data(), owned_font_data);
+    /// # Ok(()) }
+    /// ```
+    #[inline]
+    fn font_data(&self) -> &[u8] {
+        // panic impl prevents this method from breaking external Font impls
+        unimplemented!()
     }
 }
 
@@ -314,5 +342,15 @@ impl<F: Font> Font for &F {
     #[inline]
     fn glyph_raster_image2(&self, id: GlyphId, size: u16) -> Option<v2::GlyphImage> {
         (*self).glyph_raster_image2(id, size)
+    }
+
+    #[inline]
+    fn glyph_svg_image(&self, id: GlyphId) -> Option<GlyphSvg> {
+        (*self).glyph_svg_image(id)
+    }
+
+    #[inline]
+    fn font_data(&self) -> &[u8] {
+        (*self).font_data()
     }
 }
